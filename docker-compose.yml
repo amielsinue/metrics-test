@@ -1,0 +1,42 @@
+version: '3.1'
+services:
+  metricsdb:
+    build: .docker/db
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: metrics
+      POSTGRES_DB: metrics
+      POSTGRES_USER: metrics
+
+  metricsdb_test:
+    build: .docker/db
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: metrics_test
+      POSTGRES_DB: metrics_test
+      POSTGRES_USER: metrics_test
+
+  sensors:
+    build: .docker/sensors
+    restart: always
+    links:
+      - metricsapi
+    depends_on:
+      - metricsapi
+
+  metricsapi:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/app
+    links:
+      - metricsdb
+    depends_on:
+      - metricsdb
+    environment:
+      POSTGRES_URL: postgresql://metrics:metrics@metricsdb/metrics

@@ -1,0 +1,54 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<script>
+window.onload = function() {
+
+var dataPoints = [];
+
+var options = {
+	theme: "light2",
+	title: {
+		text: "Temperature"
+	},
+	data: [{
+		type: "line",
+		dataPoints: dataPoints
+	}]
+};
+$("#chartContainer").CanvasJSChart(options);
+
+
+// Initial Values
+var n = Math.floor(Date.now() / 1000)-(60);
+console.log(n);
+var xValue = n;
+var yValue = n+2;
+updateData();
+function addData(data) {
+    console.log(data.data);
+    $.each(data.data, function(key, row) {
+        console.log(key, row);
+        dataPoints.push({x: xValue, y: row.median});
+        xValue++;
+        yValue++;
+    });
+
+
+	$("#chartContainer").CanvasJSChart().render()
+	setTimeout(updateData, 1500);
+}
+
+function updateData() {
+	$.getJSON("http://localhost:8080/readings/summary?start="+xValue+"&end="+yValue, addData);
+}
+
+}
+</script>
+</head>
+<body>
+<div id="chartContainer" style="height: 370px; width: 100%;"></div>
+<script src="https://canvasjs.com/assets/script/jquery-1.11.1.min.js"></script>
+<script src="https://canvasjs.com/assets/script/jquery.canvasjs.min.js"></script>
+</body>
+</html>
