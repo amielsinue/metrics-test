@@ -8,5 +8,5 @@ COPY spawn_sensors.py /app/spawn_sensors.py
 RUN touch /var/log/sensors.log
 
 COPY sensors.conf /etc/supervisor/conf.d/sensors.conf
-
-CMD python /app/spawn_sensors.py
+COPY start.sh /app/start.sh
+CMD bash /app/start.sh
