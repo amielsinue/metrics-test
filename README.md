@@ -7,7 +7,7 @@ Then to see an example of the data you can open index.html file
 
 AIOHttp
 =========
-This help us to process to handle too of requests
+This help us to process ton of requests
 
 PostgresSQL
 ========== 
