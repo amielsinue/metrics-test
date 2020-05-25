@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-service supervisor force-reload
+service supervisor start
 
 tail -f /var/log/sensors.log
