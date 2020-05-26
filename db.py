@@ -1,25 +1,40 @@
 import os
 import time
-
-import asyncpg
 import asyncpgsa
+from contextlib import asynccontextmanager
 
 pool = None
 
 
-async def get_pool():
+async def get_pool(**kwargs):
     global pool
     if pool:
-        return pool
-    pool = await asyncpgsa.create_pool(os.environ.get('POSTGRES_URL'))
+        if kwargs.get('loop') and kwargs.get('loop') != pool._loop:
+            pool = None
+        else:
+            return pool
+
+    pool = await asyncpgsa.create_pool(os.environ.get('POSTGRES_URL'), **kwargs)
     return pool
 
 
+async def close_pool():
+    global pool
+    await pool.close()
+    pool = None
+
+
+@asynccontextmanager
+async def get_connection_from_pool():
+    _pool = await get_pool()
+    conn = await _pool.acquire()
+    yield conn
+    await _pool.release(conn)
+
 
 async def init_database():
-    _pool = await get_pool()
     # Execute a statement to create a new table.
-    async with _pool.transaction() as conn:
+    async with get_connection_from_pool() as conn:
         await conn.execute('''
                 CREATE TABLE IF NOT EXISTS readings (
                     device_uuid TEXT, 
@@ -74,14 +89,14 @@ async def init_database():
                 );
                 CREATE EXTENSION IF NOT EXISTS quantile;
             ''')
+    await close_pool()
 
 
 async def get_device_readings(device_uuid, _type=None, start=None, end=None):
     start = start if start else int(time.time() - (60 * 60))
     end = end if end else int(time.time())
-    _pool = await get_pool()
     try:
-        async with _pool.acquire() as conn:
+        async with get_connection_from_pool() as conn:
             query = 'select * from readings where device_uuid = $1 and date_created >= $2 and date_created <= $3'
             if _type:
                 query = "{} and type = '{}'".format(query, _type)
@@ -95,9 +110,8 @@ async def get_device_readings(device_uuid, _type=None, start=None, end=None):
 async def get_device_metrics(device_uuid, metric, _type=None, start=None, end=None):
     start = start if start else int(time.time() - (60 * 60))
     end = end if end else int(time.time())
-    _pool = await get_pool()
     try:
-        async with _pool.acquire() as conn:
+        async with get_connection_from_pool() as conn:
             where = '''
                 device_uuid = $1 and 
                 date_created >= $2 and 
@@ -139,9 +153,8 @@ async def get_device_metrics(device_uuid, metric, _type=None, start=None, end=No
 async def get_readings_summary(start=None, end=None, _type=None):
     start = start if start else int(time.time() - (60 * 60))
     end = end if end else int(time.time())
-    _pool = await get_pool()
     try:
-        async with _pool.acquire() as conn:
+        async with get_connection_from_pool() as conn:
             where = '''                     
                     date_created >= $1 and 
                     date_created <= $2
@@ -179,10 +192,9 @@ async def get_readings_summary(start=None, end=None, _type=None):
 
 
 async def save_readings(device_uuid, type, value, date_created):
-    _pool = await get_pool()
     # Execute a statement to create a new table.
     try:
-        async with _pool.transaction() as conn:
+        async with get_connection_from_pool() as conn:
             # Insert a record into the created table.
             await conn.execute('''
                     INSERT INTO readings (device_uuid, type, value, date_created) VALUES ($1, $2, $3, $4)
@@ -192,9 +204,12 @@ async def save_readings(device_uuid, type, value, date_created):
 
 
 async def truncate_readings():
-    _pool = await get_pool()
     # Execute a statement to create a new table.
-    async with _pool.transaction() as conn:
-        # Insert a record into the created table.
-        await conn.execute('TRUNCATE readings;')
+    try:
+        async with get_connection_from_pool() as conn:
+            # Insert a record into the created table.
+            await conn.execute('DELETE FROM readings;')
+    except Exception as e:
+        _ = e
+
 

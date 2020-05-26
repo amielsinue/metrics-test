@@ -1,15 +1,17 @@
+import asyncio
 import time
 import uuid
 from aiohttp import ClientTimeout
 from aiohttp.test_utils import AioHTTPTestCase, TestClient, unittest_run_loop
-from db import save_readings, truncate_readings, init_database
+from db import save_readings, truncate_readings, init_database, get_pool
 from main import make_app
+
+asyncio.get_event_loop().run_until_complete(init_database())
 
 
 class DeviceReadingsTestCase(AioHTTPTestCase):
 
     async def setUpAsync(self):
-        await init_database()
         await super(DeviceReadingsTestCase, self).setUpAsync()
 
     def setUp(self, *args, **kwargs):
@@ -17,8 +19,9 @@ class DeviceReadingsTestCase(AioHTTPTestCase):
         self.device_b = uuid.uuid1()
         self.device_c = uuid.uuid1()
         super(DeviceReadingsTestCase, self).setUp(*args, **kwargs)
+        self.loop.run_until_complete(get_pool(loop=self.loop))
 
-    async def tearDownAsync(self) -> None:
+    async def tearDownAsync(self):
         await truncate_readings()
 
     async def get_client(self, server):

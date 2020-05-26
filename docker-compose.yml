@@ -14,11 +14,23 @@ services:
     build: .docker/db
     restart: always
     ports:
-      - "5432:5432"
+      - "5434:5432"
     environment:
       POSTGRES_PASSWORD: metrics_test
       POSTGRES_DB: metrics_test
       POSTGRES_USER: metrics_test
+
+  rununittests:
+    build: .
+    volumes:
+      - ./:/app
+    links:
+      - metricsdb_test
+    depends_on:
+      - metricsdb_test
+    env_file:
+      - test.env
+    command: pytest /app/tests.py
 
   sensors:
     build: .docker/sensors

@@ -80,6 +80,7 @@ def make_app():
     app.router.add_get('/readings/summary', readings_metrics_summary)
     for route in list(app.router.routes()):
         cors.add(route)
+
     return app
 
 if __name__ == "__main__":
