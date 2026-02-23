@@ -64,6 +64,22 @@ class SensorRoutesTestCases(unittest.TestCase):
 
         self.client = app.test_client
 
+    def test_health_endpoint_returns_200(self):
+        # When we make a request to the health endpoint
+        request = self.client().get('/health')
+
+        # Then we should receive a 200
+        self.assertEqual(request.status_code, 200)
+
+    def test_health_endpoint_returns_status_ok(self):
+        # When we make a request to the health endpoint
+        request = self.client().get('/health')
+
+        # Then the response should contain status ok
+        data = json.loads(request.data)
+        self.assertIn('status', data)
+        self.assertEqual(data['status'], 'ok')
+
     def test_device_readings_get(self):
         # Given a device UUID
         # When we make a request with the given UUID

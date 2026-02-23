@@ -1,4 +1,7 @@
-from httplib import BAD_REQUEST
+try:
+    from httplib import BAD_REQUEST
+except ImportError:
+    from http.client import BAD_REQUEST
 
 from flask.json import jsonify
 from flask_restful import reqparse, abort
@@ -14,6 +17,11 @@ import time
 app = Flask(__name__)
 app.config['TESTING'] = os.environ.get('FLASK_ENV') == 'testing'
 init_db(app)
+
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'ok'}), 200
 
 
 @app.route('/devices/<string:device_uuid>/readings/', methods = ['POST'])

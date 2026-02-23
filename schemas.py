@@ -1,5 +1,8 @@
 import json
-from httplib import BAD_REQUEST
+try:
+    from httplib import BAD_REQUEST
+except ImportError:
+    from http.client import BAD_REQUEST
 
 from flask_restful import abort
 from marshmallow import Schema, fields, pre_load, post_load, validate
